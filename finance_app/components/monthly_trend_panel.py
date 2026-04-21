@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from config.finance_theme import SEMANTIC
-from config.finance_theme import hoverlabel
 from utils.formatters import format_eur_es, format_k_es 
 
 def empty_bar_figure(message: str = "No data available for the selected period"):

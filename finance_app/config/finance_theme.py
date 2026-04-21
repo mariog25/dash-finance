@@ -25,8 +25,3 @@ SEMANTIC = {
         "line_soft": "rgba(7, 33, 70, 0.68)",
     },
 }
-hoverlabel = {
-    "bgcolor": "rgba(255,255,255,0.86)",
-    "bordercolor": "rgba(7,33,70,0.10)",
-    "font": {"size": 12}
-}

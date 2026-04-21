@@ -15,51 +15,6 @@ def get_available_months():
     return pd.read_sql(query, engine)
 
 
-def get_kpis_by_month(month: str):
-    engine = get_engine()
-
-    query = f"""
-    SELECT
-        SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS total_income,
-        SUM(CASE WHEN amount < 0 THEN abs(amount) ELSE 0 END) AS total_expense,
-        COUNT(*) AS total_txn
-    FROM iceberg.gold.fact_bank_transaction
-    WHERE date_trunc('month', txn_date) = DATE '{month}'
-    """
-
-    df = pd.read_sql(query, engine)
-
-    if df.empty:
-        return {"income": 0, "expense": 0, "txn": 0, "savings": 0}
-
-    income = float(df["total_income"].iloc[0] or 0)
-    expense = float(df["total_expense"].iloc[0] or 0)
-    txn = int(df["total_txn"].iloc[0] or 0)
-
-    return {
-        "income": income,
-        "expense": expense,
-        "txn": txn,
-        "savings": income - expense,
-    }
-
-
-def get_daily_expense(month: str):
-    engine = get_engine()
-
-    query = f"""
-    SELECT
-        txn_date,
-        SUM(CASE WHEN amount < 0 THEN abs(amount) ELSE 0 END) AS total
-    FROM iceberg.gold.fact_bank_transaction
-    WHERE date_trunc('month', txn_date) = DATE '{month}'
-    GROUP BY txn_date
-    ORDER BY txn_date
-    """
-
-    return pd.read_sql(query, engine)
-
-
 def get_expense_insight(month: str):
     engine = get_engine()
 
