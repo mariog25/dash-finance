@@ -1,0 +1,7 @@
+dash
+plotly
+pandas
+sqlalchemy
+trino[sqlalchemy]
+dash-ag-grid
+python-dotenv
