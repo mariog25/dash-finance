@@ -28,7 +28,7 @@ def empty_bar_figure(message: str = "No data available for the selected period")
         },
     }
 
-def build_monthly_trend_figure(df: pd.DataFrame):
+def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False, show_cumulative_savings: bool = True, chart_type: str = "bar"):
     if df.empty:
         return empty_bar_figure()
 
@@ -39,11 +39,12 @@ def build_monthly_trend_figure(df: pd.DataFrame):
         [format_eur_es(v) for v in df["cumulative_savings"]],
     ))
     income_cd = expense_cd
+    savings_cd = [[format_eur_es(i - e)] for i, e in zip(df["income_total"], df["expense_total"])]
 
     fig = go.Figure()
 
-    fig.add_trace(
-        go.Bar(
+    if chart_type == "bar":
+        expense_trace = go.Bar(
             x=df["label"],
             y=df["expense_total"],
             name="Expenses",
@@ -82,10 +83,32 @@ def build_monthly_trend_figure(df: pd.DataFrame):
                 "<extra></extra>"
             ),
         )
-    )
+    else:  # area
+        expense_trace = go.Scatter(
+            x=df["label"],
+            y=df["expense_total"],
+            name="Expenses",
+            mode="lines+markers",
+            fill="tozeroy",
+            fillcolor=SEMANTIC["expense"]["fill"],
+            line={"color": SEMANTIC["expense"]["line"], "width": 2},
+            marker={"size": 6, "color": SEMANTIC["expense"]["line"]},
+            customdata=expense_cd,
+            hoverlabel={
+                "bgcolor": "rgba(255,255,255,0.98)",
+                "bordercolor": SEMANTIC["expense"]["line"],
+            },
+            hovertemplate=(
+                "<b>%{x}</b><br>"
+                "Expenses: %{customdata[0]}<br>"
+                "<extra></extra>"
+            ),
+        )
 
-    fig.add_trace(
-        go.Bar(
+    fig.add_trace(expense_trace)
+
+    if chart_type == "bar":
+        income_trace = go.Bar(
             x=df["label"],
             y=df["income_total"],
             name="Income",
@@ -117,7 +140,77 @@ def build_monthly_trend_figure(df: pd.DataFrame):
                 "<extra></extra>"
             ),
         )
-    )
+    else:  # area
+        income_trace = go.Scatter(
+            x=df["label"],
+            y=df["income_total"],
+            name="Income",
+            mode="lines+markers",
+            fill="tozeroy",
+            fillcolor=SEMANTIC["income"]["fill"],
+            line={"color": SEMANTIC["income"]["line"], "width": 2},
+            marker={"size": 6, "color": SEMANTIC["income"]["line"]},
+            customdata=income_cd,
+            hovertemplate=(
+                "<b>%{x}</b><br>"
+                "Income: %{customdata[1]}<br>"
+                "<extra></extra>"
+            ),
+        )
+
+    fig.add_trace(income_trace)
+
+    if show_savings_bar:
+        if chart_type == "bar":
+            savings_trace = go.Bar(
+                x=df["label"],
+                y=df["savings_total"],
+                name="Savings",
+                offsetgroup="savings",
+                customdata=savings_cd,
+                text=[format_k_es(v) if float(v or 0) != 0 else "" for v in df["savings_total"]],
+                texttemplate="%{text}",
+                textposition="outside",
+                cliponaxis=False,
+                textfont={
+                    "size": 12,
+                    "color": SEMANTIC["savings"]["line_soft"],
+                },
+                marker={
+                    "color": SEMANTIC["savings"]["fill"],
+                    "line": {"color": SEMANTIC["savings"]["line"], "width": 1.1},
+                    "pattern": {
+                        "shape": "|",
+                        "size": 8,
+                        "solidity": 0.18,
+                        "fgcolor": SEMANTIC["savings"]["pattern_fg"],
+                        "bgcolor": SEMANTIC["savings"]["pattern_bg"],
+                    },
+                    "cornerradius": "32%",
+                },
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Income - Expenses: %{customdata[0]}<br>"
+                    "<extra></extra>"
+                ),
+            )
+        else:  # area
+            savings_trace = go.Scatter(
+                x=df["label"],
+                y=df["expense_total"] + df["income_total"] + df["savings_total"],
+                name="Savings",
+                mode="lines",
+                fill="tonexty",
+                fillcolor=SEMANTIC["savings"]["fill"],
+                line={"color": SEMANTIC["savings"]["line"], "width": 2},
+                customdata=savings_cd,
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Income - Expenses: %{customdata[0]}<br>"
+                    "<extra></extra>"
+                ),
+            )
+        fig.add_trace(savings_trace)
 
     fig.add_trace(
         go.Scatter(
@@ -133,42 +226,39 @@ def build_monthly_trend_figure(df: pd.DataFrame):
         )
     )
 
-    fig.add_trace(
-        go.Scatter(
-            x=df["label"],
-            y=df["cumulative_savings"],
-            mode="lines+markers",
-            name="Accumulated savings",
-            yaxis="y2",
-            line={"color": SEMANTIC["savings"]["line"], "width": 1.3, "shape": "spline", "smoothing": 0.5},
-            marker={
-                "size": 4,
-                "color": SEMANTIC["savings"]["line"],
-                "line": {"color": "rgba(255,255,255,0.92)", "width": 1.2},
-            },
-            customdata=[[format_eur_es(v)] for v in df["cumulative_savings"]],
-            hovertemplate="<b>%{x}</b><br>Accumulated savings: %{customdata[0]}<extra></extra>",
+    if show_cumulative_savings:
+        fig.add_trace(
+            go.Scatter(
+                x=df["label"],
+                y=df["cumulative_savings"],
+                mode="lines+markers",
+                name="Accumulated savings",
+                yaxis="y2",
+                line={"color": SEMANTIC["savings"]["line"], "width": 1.3, "shape": "spline", "smoothing": 0.5},
+                marker={
+                    "size": 4,
+                    "color": SEMANTIC["savings"]["line"],
+                    "line": {"color": "rgba(255,255,255,0.92)", "width": 1.2},
+                },
+                customdata=[[format_eur_es(v)] for v in df["cumulative_savings"]],
+                hovertemplate="<b>%{x}</b><br>Accumulated savings: %{customdata[0]}<extra></extra>",
+            )
         )
-    )
 
     selected_index = df.index[df["is_selected"]].tolist()
     selected_pos = selected_index[0] if selected_index else None
 
-    fig.update_layout(
-        paper_bgcolor="rgba(255,255,255,1)",
-        plot_bgcolor="rgba(255,255,255,1)",
-        margin={"l": 56, "r": 58, "t": 28, "b": 48},
-        barmode="group",
-        bargap=0.26,
-        bargroupgap=0.14,
-        barcornerradius="32%",
-        hovermode="closest",
-        hoverlabel={
+    layout_kwargs = {
+        "paper_bgcolor": "rgba(255,255,255,1)",
+        "plot_bgcolor": "rgba(255,255,255,1)",
+        "margin": {"l": 56, "r": 58, "t": 28, "b": 48},
+        "hovermode": "closest",
+        "hoverlabel": {
             "bgcolor": "rgba(255,255,255,0.86)",
             "bordercolor": "rgba(7,33,70,0.08)",
             "font": {"family": "Math, sans-serif", "size": 12, "color": "#46586e"},
         },
-        legend={
+        "legend": {
             "orientation": "h",
             "yanchor": "bottom",
             "y": 1.02,
@@ -178,12 +268,12 @@ def build_monthly_trend_figure(df: pd.DataFrame):
             "entrywidth": 0,
             "entrywidthmode": "pixels",
         },
-        xaxis={
+        "xaxis": {
             "showgrid": False,
             "tickfont": {"size": 12, "color": "#4a5a6a"},
             "fixedrange": True,
         },
-        yaxis={
+        "yaxis": {
             "title": {
                 "text": "Income / Expense / Net",
                 "font": {"size": 12, "color": "#7b8a9a"},
@@ -193,7 +283,7 @@ def build_monthly_trend_figure(df: pd.DataFrame):
             "zerolinecolor": "rgba(7,33,70,0.14)",
             "fixedrange": True,
         },
-        yaxis2={
+        "yaxis2": {
             "title": {
                 "text": "Accumulated savings",
                 "font": {"size": 12, "color": "#a3722d"},
@@ -204,7 +294,7 @@ def build_monthly_trend_figure(df: pd.DataFrame):
             "showgrid": False,
             "fixedrange": True,
         },
-        shapes=(
+        "shapes": (
             [
                 {
                     "type": "rect",
@@ -220,8 +310,18 @@ def build_monthly_trend_figure(df: pd.DataFrame):
                 }
             ] if selected_pos is not None else []
         ),
-        transition={"duration": 350, "easing": "cubic-in-out"},
-    )
+        "transition": {"duration": 350, "easing": "cubic-in-out"},
+    }
+
+    if chart_type == "bar":
+        layout_kwargs.update({
+            "barmode": "group",
+            "bargap": 0.26,
+            "bargroupgap": 0.14,
+            "barcornerradius": "32%",
+        })
+
+    fig.update_layout(**layout_kwargs)
 
     return fig
 

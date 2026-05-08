@@ -896,6 +896,14 @@ a {
   display: none;
 }
 
+.year-evolution-desktop {
+  display: block;
+}
+
+.year-evolution-mobile {
+  display: none;
+}
+
 .sidebar-mobile-header {
   display: none;
 }
@@ -959,7 +967,7 @@ a {
   }
 
   #transactions-table .dash-spreadsheet-inner table {
-    min-width: 560px;
+    min-width: 300px;
   }
 }
 
@@ -1236,6 +1244,14 @@ a {
   .trend-graph-mobile {
     display: block;
   }
+
+  .year-evolution-desktop {
+    display: none;
+  }
+
+  .year-evolution-mobile {
+    display: block;
+  }
 }
 .sidebar-wrapper {
   display: block;
@@ -1366,7 +1382,7 @@ a {
   .expense-insight-card,
   .insight-card {
     min-height: 230px;
-    padding: 18px 18px 90px 18px;
+    padding: 18px 18px 18px 18px;
   }
 
   .expense-insight-chart-wrap,

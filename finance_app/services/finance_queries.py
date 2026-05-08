@@ -298,6 +298,105 @@ def get_monthly_overview_window(selected_month: str):
     return pd.read_sql(query, engine)
 
 
+def get_same_month_last_years(selected_month: str, years_back: int = 10):
+    engine = get_engine()
+
+    selected_ts = pd.to_datetime(selected_month)
+    month_num = selected_ts.month
+    year_end = selected_ts.year
+    year_start = year_end - years_back + 1
+
+    query = f"""
+    SELECT
+        year(txn_date) AS year,
+        SUM(
+            CASE
+                WHEN amount < 0 AND category_id != 'finance.savings'
+                THEN abs(amount)
+                ELSE 0
+            END
+        ) AS expense_total,
+        SUM(
+            CASE
+                WHEN amount > 0 AND category_id != 'finance.savings'
+                THEN amount
+                ELSE 0
+            END
+        ) AS income_total,
+        (SUM(
+            CASE
+                WHEN category_id = 'finance.savings'
+                THEN amount
+                ELSE 0
+            END
+        ))*(-1) AS savings_total
+    FROM iceberg.gold.fact_bank_transaction
+    WHERE txn_date IS NOT NULL
+      AND month(txn_date) = {month_num}
+      AND year(txn_date) BETWEEN {year_start} AND {year_end}
+      AND source_type_code = 'account'
+    GROUP BY 1
+    ORDER BY 1
+    """
+
+    df = pd.read_sql(query, engine)
+    year_index = pd.DataFrame({'year': list(range(year_start, year_end + 1))})
+    df = year_index.merge(df, on='year', how='left').fillna(0.0)
+    df[['expense_total', 'income_total', 'savings_total']] = df[['expense_total', 'income_total', 'savings_total']].astype(float)
+    df['net_total'] = df['income_total'] - df['expense_total']
+    df['cumulative_savings'] = df['savings_total'].cumsum()
+    return df
+
+
+def get_yearly_totals_last_years(selected_month: str, years_back: int = 10):
+    engine = get_engine()
+
+    selected_ts = pd.to_datetime(selected_month)
+    year_end = selected_ts.year
+    year_start = year_end - years_back + 1
+
+    query = f"""
+    SELECT
+        year(txn_date) AS year,
+        SUM(
+            CASE
+                WHEN amount < 0 AND category_id != 'finance.savings'
+                THEN abs(amount)
+                ELSE 0
+            END
+        ) AS expense_total,
+        SUM(
+            CASE
+                WHEN amount > 0 AND category_id != 'finance.savings'
+                THEN amount
+                ELSE 0
+            END
+        ) AS income_total,
+        (SUM(
+            CASE
+                WHEN category_id = 'finance.savings'
+                THEN amount
+                ELSE 0
+            END
+        ))* (-1) AS savings_total
+    FROM iceberg.gold.fact_bank_transaction
+    WHERE txn_date IS NOT NULL
+      AND txn_date >= DATE '{year_start}-01-01'
+      AND txn_date < DATE '{year_end + 1}-01-01'
+      AND source_type_code = 'account'
+    GROUP BY 1
+    ORDER BY 1
+    """
+
+    df = pd.read_sql(query, engine)
+    year_index = pd.DataFrame({'year': list(range(year_start, year_end + 1))})
+    df = year_index.merge(df, on='year', how='left').fillna(0.0)
+    df[['expense_total', 'income_total', 'savings_total']] = df[['expense_total', 'income_total', 'savings_total']].astype(float)
+    df['net_total'] = df['income_total'] - df['expense_total']
+    df['cumulative_savings'] = df['savings_total'].cumsum()
+    return df
+
+
 def get_monthly_expense_breakdown_by_category(month: str):
     engine = get_engine()
 
