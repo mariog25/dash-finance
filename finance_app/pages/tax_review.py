@@ -8,9 +8,10 @@ from components.tax_company_card import build_tax_company_card, build_tax_compan
 from components.tax_employee_card import build_tax_employee_card, build_tax_employee_trend_figure
 from components.tax_state_card import build_tax_state_card, build_tax_state_trend_figure
 from services.finance_queries import (
+    get_tax_payment_for_year,
     get_tax_available_years,
     get_tax_payments_trend,
-    insert_tax_payment,
+    merge_tax_payment,
 )
 from utils.formatters import format_eur_es, format_pct_es, deviation_class
 
@@ -60,6 +61,7 @@ layout = html.Div(
             ],
         ),
         build_filter_row(),
+        dcc.Store(id="tax-payment-record-store"),
         html.Div(id="tax-review-status", className="form-status"),
         html.Div(
             className="top-summary-grid",
@@ -197,29 +199,82 @@ layout = html.Div(
     Output("tax-employee-ss-input", "value"),
     Output("tax-employer-ss-input", "value"),
     Output("tax-notes-textarea", "value"),
+    Output("tax-payment-record-store", "data"),
     Input("tax-add-button", "n_clicks"),
     Input("tax-cancel-button", "n_clicks"),
     Input("tax-save-button", "n_clicks"),
+    Input("tax-year-input", "value"),
     State("tax-filter-year", "value"),
-    State("tax-year-input", "value"),
     State("tax-irpf-input", "value"),
     State("tax-employee-ss-input", "value"),
     State("tax-employer-ss-input", "value"),
     State("tax-notes-textarea", "value"),
+    State("tax-payment-record-store", "data"),
     prevent_initial_call=True,
 )
-def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, filter_year, year_value, irpf, employee_ss, employer_ss, notes):
+def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, year_value, filter_year, irpf, employee_ss, employer_ss, notes, record_store):
     triggered = ctx.triggered_id
 
     if triggered == "tax-add-button":
+        existing_record = get_tax_payment_for_year(int(filter_year)) if filter_year else None
+        if existing_record:
+            return (
+                None,
+                {"display": "flex"},
+                existing_record["fiscal_year"],
+                existing_record["employee_irpf_amount"],
+                existing_record["employee_social_security_amount"],
+                existing_record["employer_social_security_amount"],
+                existing_record["notes"],
+                {"tax_payment_id": existing_record["tax_payment_id"]},
+            )
+
         return (
             None,
             {"display": "flex"},
             filter_year,
-            irpf,
-            employee_ss,
-            employer_ss,
-            notes,
+            None,
+            None,
+            None,
+            "",
+            None,
+        )
+
+    if triggered == "tax-year-input":
+        if year_value is None:
+            return (
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                None,
+                None,
+                None,
+                "",
+                None,
+            )
+
+        existing_record = get_tax_payment_for_year(int(year_value))
+        if existing_record:
+            return (
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                existing_record["employee_irpf_amount"],
+                existing_record["employee_social_security_amount"],
+                existing_record["employer_social_security_amount"],
+                existing_record["notes"],
+                {"tax_payment_id": existing_record["tax_payment_id"]},
+            )
+
+        return (
+            dash.no_update,
+            dash.no_update,
+            dash.no_update,
+            None,
+            None,
+            None,
+            "",
+            None,
         )
 
     if triggered == "tax-cancel-button":
@@ -231,6 +286,7 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, filter_year, year_v
             employee_ss,
             employer_ss,
             notes,
+            record_store,
         )
 
     if triggered == "tax-save-button":
@@ -246,15 +302,22 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, filter_year, year_v
                 employee_ss,
                 employer_ss,
                 notes,
+                record_store,
             )
 
         try:
-            insert_tax_payment(
+            existing_record_id = (record_store or {}).get("tax_payment_id")
+            if not existing_record_id:
+                existing_record = get_tax_payment_for_year(int(year_value))
+                existing_record_id = existing_record["tax_payment_id"] if existing_record else None
+
+            tax_payment_id = merge_tax_payment(
                 fiscal_year=int(year_value),
                 employee_irpf_amount=float(irpf),
                 employee_social_security_amount=float(employee_ss),
                 employer_social_security_amount=float(employer_ss),
                 notes=notes or "",
+                tax_payment_id=existing_record_id,
             )
             return (
                 html.Div(
@@ -267,6 +330,7 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, filter_year, year_v
                 None,
                 None,
                 "",
+                {"tax_payment_id": tax_payment_id},
             )
         except Exception as exc:
             return (
@@ -280,9 +344,10 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, filter_year, year_v
                 employee_ss,
                 employer_ss,
                 notes,
+                record_store,
             )
 
-    return (None, {"display": "none"}, year_value, irpf, employee_ss, employer_ss, notes)
+    return (None, {"display": "none"}, year_value, irpf, employee_ss, employer_ss, notes, record_store)
 
 
 @dash.callback(
@@ -312,8 +377,9 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, filter_year, year_v
     Output("tax-company-chart", "figure"),
     Output("tax-yearly-breakdown-chart", "figure"),
     Input("tax-filter-year", "value"),
+    Input("tax-review-status", "children"),
 )
-def update_tax_dashboard(selected_year):
+def update_tax_dashboard(selected_year, _status):
     def empty_figure():
         return {"data": [], "layout": {}}
 

@@ -82,6 +82,156 @@ def insert_tax_payment(
     return tax_payment_id
 
 
+def get_tax_payment_for_year(
+    fiscal_year: int,
+    source_system_code: str = "dash-app",
+    source_form_id: str = "tax_review_form",
+):
+    engine = get_engine()
+
+    query = f"""
+    SELECT
+        tax_payment_id,
+        fiscal_year,
+        employee_irpf_amount,
+        employee_social_security_amount,
+        employer_social_security_amount,
+        notes
+    FROM iceberg.silver.finance_tax_payments_manual
+    WHERE fiscal_year = {int(fiscal_year)}
+      AND source_system_code = '{source_system_code}'
+      AND source_form_id = '{source_form_id}'
+      AND is_active = true
+    ORDER BY updated_at DESC, created_at DESC
+    LIMIT 1
+    """
+
+    df = pd.read_sql(query, engine)
+    if df.empty:
+        return None
+
+    row = df.iloc[0]
+
+    def number_value(column: str) -> float:
+        value = row[column]
+        return 0.0 if pd.isna(value) else float(value)
+
+    notes = row["notes"]
+
+    return {
+        "tax_payment_id": row["tax_payment_id"],
+        "fiscal_year": int(row["fiscal_year"]),
+        "employee_irpf_amount": number_value("employee_irpf_amount"),
+        "employee_social_security_amount": number_value("employee_social_security_amount"),
+        "employer_social_security_amount": number_value("employer_social_security_amount"),
+        "notes": "" if pd.isna(notes) else notes,
+    }
+
+
+def merge_tax_payment(
+    fiscal_year: int,
+    employee_irpf_amount: float,
+    employee_social_security_amount: float,
+    employer_social_security_amount: float,
+    notes: str,
+    tax_payment_id: str | None = None,
+    source_system_code: str = "dash-app",
+    source_form_id: str = "tax_review_form",
+):
+    engine = get_engine()
+    now = datetime.datetime.utcnow()
+    payment_id = tax_payment_id or str(uuid.uuid4())
+
+    query = text(
+        """
+        MERGE INTO iceberg.silver.finance_tax_payments_manual target
+        USING (
+            VALUES (
+                :tax_payment_id,
+                :fiscal_year,
+                :employee_irpf_amount,
+                :employee_social_security_amount,
+                :employer_social_security_amount,
+                :source_system_code,
+                :source_form_id,
+                :notes,
+                :created_at,
+                :updated_at,
+                :is_active
+            )
+        ) AS source (
+            tax_payment_id,
+            fiscal_year,
+            employee_irpf_amount,
+            employee_social_security_amount,
+            employer_social_security_amount,
+            source_system_code,
+            source_form_id,
+            notes,
+            created_at,
+            updated_at,
+            is_active
+        )
+        ON target.tax_payment_id = source.tax_payment_id
+        WHEN MATCHED THEN UPDATE SET
+            fiscal_year = source.fiscal_year,
+            employee_irpf_amount = source.employee_irpf_amount,
+            employee_social_security_amount = source.employee_social_security_amount,
+            employer_social_security_amount = source.employer_social_security_amount,
+            source_system_code = source.source_system_code,
+            source_form_id = source.source_form_id,
+            notes = source.notes,
+            updated_at = source.updated_at,
+            is_active = source.is_active
+        WHEN NOT MATCHED THEN INSERT (
+            tax_payment_id,
+            fiscal_year,
+            employee_irpf_amount,
+            employee_social_security_amount,
+            employer_social_security_amount,
+            source_system_code,
+            source_form_id,
+            notes,
+            created_at,
+            updated_at,
+            is_active
+        ) VALUES (
+            source.tax_payment_id,
+            source.fiscal_year,
+            source.employee_irpf_amount,
+            source.employee_social_security_amount,
+            source.employer_social_security_amount,
+            source.source_system_code,
+            source.source_form_id,
+            source.notes,
+            source.created_at,
+            source.updated_at,
+            source.is_active
+        )
+        """
+    )
+
+    with engine.begin() as connection:
+        connection.execute(
+            query,
+            {
+                "tax_payment_id": payment_id,
+                "fiscal_year": fiscal_year,
+                "employee_irpf_amount": employee_irpf_amount,
+                "employee_social_security_amount": employee_social_security_amount,
+                "employer_social_security_amount": employer_social_security_amount,
+                "source_system_code": source_system_code,
+                "source_form_id": source_form_id,
+                "notes": notes,
+                "created_at": now,
+                "updated_at": now,
+                "is_active": True,
+            },
+        )
+
+    return payment_id
+
+
 def get_tax_available_years():
     engine = get_engine()
 
