@@ -1278,6 +1278,14 @@ a {
   display: none;
 }
 
+.trend-graph-desktop {
+  display: block;
+}
+
+.trend-graph-mobile {
+  display: none;
+}
+
 .sidebar-mobile-header {
   display: none;
 }
