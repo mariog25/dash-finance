@@ -23,8 +23,12 @@ year_options = [
     {"label": str(y), "value": str(y)}
     for y in sorted(years, reverse=True)
 ]
-default_year = year_options[0]["value"] if year_options else str(pd.Timestamp.now().year)
 default_form_year = pd.Timestamp.now().year - 1
+default_year = (
+    str(default_form_year)
+    if any(option["value"] == str(default_form_year) for option in year_options)
+    else year_options[0]["value"] if year_options else str(default_form_year)
+)
 
 def build_filter_row():
     return html.Div(
