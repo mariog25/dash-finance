@@ -306,9 +306,141 @@ a {
   min-width: 110px;
 }
 
+.filter-text-input {
+  padding: 10px 14px;
+  border: 1px solid rgba(7, 33, 70, 0.12);
+  border-radius: 24px;
+  font-size: 13px;
+  color: #2c3e50;
+  background: white;
+  min-width: 200px;
+  transition: all 200ms ease;
+}
+
+.filter-text-input:focus {
+  outline: none;
+  border-color: rgba(25, 115, 184, 0.4);
+  box-shadow: 0 0 0 3px rgba(25, 115, 184, 0.1);
+}
+
+.filter-text-input::placeholder {
+  color: #a3a3a3;
+}
+
 .dash-dropdown,
 .dash-dropdown-content {
   border-radius: 24px;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(7, 33, 70, 0.34);
+  z-index: 1000;
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  background: white;
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 24px 50px rgba(7, 33, 70, 0.16);
+  border: 1px solid rgba(7, 33, 70, 0.08);
+}
+
+.modal-title {
+  margin: 0 0 20px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #072146;
+}
+
+.modal-fields {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.modal-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #4a5a6a;
+  font-weight: 600;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(7, 33, 70, 0.16);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #243b55;
+  background: #ffffff;
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: rgba(25, 115, 184, 0.5);
+  box-shadow: 0 0 0 3px rgba(25, 115, 184, 0.12);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.primary-button,
+.secondary-button {
+  min-width: 110px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.primary-button {
+  background: #1973b8;
+  color: white;
+}
+
+.secondary-button {
+  background: #f3f5f9;
+  color: #0f3566;
+}
+
+.form-status {
+  min-height: 28px;
+  margin-bottom: 16px;
+}
+
+.form-status-success {
+  color: #0f6c33;
+  background: rgba(15, 108, 51, 0.08);
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+.form-status-error {
+  color: #b02a37;
+  background: rgba(176, 42, 55, 0.08);
+  padding: 10px 14px;
+  border-radius: 12px;
 }
 
 body {
@@ -843,6 +975,239 @@ a {
   white-space: nowrap;
 }
 
+/* Mortgage cards */
+.mortgage-payment-card,
+.mortgage-interest-card,
+.mortgage-amortization-card {
+  position: relative;
+}
+
+.mortgage-payment-card::before,
+.mortgage-interest-card::before,
+.mortgage-amortization-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  z-index: 5;
+}
+
+.mortgage-payment-card::before {
+  background: linear-gradient(90deg, #be3e46, #e76363);
+}
+
+.mortgage-interest-card::before {
+  background: linear-gradient(90deg, #d68f22, #a3722d);
+}
+
+.mortgage-amortization-card::before {
+  background: linear-gradient(90deg, #1973b8, #49a5e6);
+}
+
+.insight-card.tax-employee-card::before {
+  background: linear-gradient(90deg, #e35858, #c33c4c);
+}
+
+.insight-card.tax-employer-card::before {
+  background: linear-gradient(90deg, #1973b8, #49a5e6);
+}
+
+.insight-card.tax-company-card::before {
+  background: linear-gradient(90deg, #d68f22, #f4b84f);
+}
+
+.insight-card.mortgage-payment-card,
+.insight-card.mortgage-interest-card,
+.insight-card.mortgage-amortization-card,
+.insight-card.tax-employee-card,
+.insight-card.tax-employer-card,
+.insight-card.tax-company-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border: 1px solid rgba(7, 33, 70, 0.08);
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 10px 28px rgba(7, 33, 70, 0.08);
+  min-height: 300px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.insight-card-header,
+.insight-card-body {
+  position: relative;
+  z-index: 3;
+}
+
+.insight-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.insight-card-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--bbva-text);
+  letter-spacing: -0.02em;
+}
+
+.insight-card-subtitle {
+  font-size: 13px;
+  color: var(--bbva-text-soft);
+  font-weight: 600;
+}
+
+.insight-card-body {
+  display: block;
+}
+
+.insight-card-value {
+  font-size: 35px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--bbva-number);
+  margin-bottom: 18px;
+}
+
+.insight-card-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mortgage-payment-card .insight-card-value,
+.mortgage-payment-card .number-mortgage {
+  color: #be3e46;
+}
+
+.mortgage-interest-card .insight-card-value,
+.mortgage-interest-card .number-mortgage {
+  color: #d68f22;
+}
+
+.mortgage-amortization-card .insight-card-value,
+.mortgage-amortization-card .number-mortgage {
+  color: #1973b8;
+}
+
+.tax-employee-card .insight-card-value,
+.tax-employee-card .number-tax-employee {
+  color: #be3e46;
+}
+
+.tax-employer-card .insight-card-value,
+.tax-employer-card .number-tax-employer {
+  color: #1973b8;
+}
+
+.tax-company-card .insight-card-value,
+.tax-company-card .number-tax-company {
+  color: #d68f22;
+}
+
+.mortgage-payment-chart-wrap,
+.mortgage-interest-chart-wrap,
+.mortgage-amortization-chart-wrap,
+.tax-employee-card-chart-wrap,
+.tax-employer-card-chart-wrap,
+.tax-company-card-chart-wrap {
+  position: relative;
+  margin-top: -6px;
+  padding: 0 6px 2px 6px;
+  height: 105px;
+  z-index: 2;
+  opacity: 0.64;
+  pointer-events: auto;
+}
+
+.mortgage-payment-chart-wrap::before,
+.mortgage-interest-chart-wrap::before,
+.mortgage-amortization-chart-wrap::before,
+.tax-employee-card-chart-wrap::before,
+.tax-employer-card-chart-wrap::before,
+.tax-company-card-chart-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(255, 255, 255, 0.62) 16%,
+    rgba(255, 255, 255, 0.30) 32%,
+    rgba(255, 255, 255, 0.10) 52%,
+    rgba(255, 255, 255, 0.00) 74%
+  );
+  pointer-events: none;
+}
+
+.mortgage-payment-chart-wrap .js-plotly-plot,
+.mortgage-payment-chart-wrap .plot-container,
+.mortgage-payment-chart-wrap .svg-container,
+.mortgage-interest-chart-wrap .js-plotly-plot,
+.mortgage-interest-chart-wrap .plot-container,
+.mortgage-interest-chart-wrap .svg-container,
+.mortgage-amortization-chart-wrap .js-plotly-plot,
+.mortgage-amortization-chart-wrap .plot-container,
+.mortgage-amortization-chart-wrap .svg-container,
+.tax-employee-card-chart-wrap .js-plotly-plot,
+.tax-employee-card-chart-wrap .plot-container,
+.tax-employee-card-chart-wrap .svg-container,
+.tax-employer-card-chart-wrap .js-plotly-plot,
+.tax-employer-card-chart-wrap .plot-container,
+.tax-employer-card-chart-wrap .svg-container,
+.tax-company-card-chart-wrap .js-plotly-plot,
+.tax-company-card-chart-wrap .plot-container,
+.tax-company-card-chart-wrap .svg-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.number-mortgage {
+  color: #be3e46;
+}
+
+.mortgage-payment-card .number-mortgage {
+  color: #be3e46;
+}
+
+.mortgage-interest-card .number-mortgage {
+  color: #d68f22;
+}
+
+.mortgage-amortization-card .number-mortgage {
+  color: #1973b8;
+}
+
+.mortgage-payment-chart-wrap .hoverlayer,
+.mortgage-interest-chart-wrap .hoverlayer,
+.mortgage-amortization-chart-wrap .hoverlayer {
+  filter: drop-shadow(0 8px 18px rgba(7, 33, 70, 0.10));
+}
+
+.mortgage-payment-card:hover .mortgage-payment-chart-wrap,
+.mortgage-interest-card:hover .mortgage-interest-chart-wrap,
+.mortgage-amortization-card:hover .mortgage-amortization-chart-wrap {
+  opacity: 0.90;
+  filter: saturate(1.08) contrast(1.04);
+  transform: translateY(-3px);
+}
+
+.mortgage-payment-card:hover .mortgage-payment-chart-wrap::before,
+.mortgage-interest-card:hover .mortgage-interest-chart-wrap::before,
+.mortgage-amortization-card:hover .mortgage-amortization-chart-wrap::before {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.66) 0%,
+    rgba(255, 255, 255, 0.42) 16%,
+    rgba(255, 255, 255, 0.16) 32%,
+    rgba(255, 255, 255, 0.05) 52%,
+    rgba(255, 255, 255, 0.00) 74%
+  );
+}
+
 /* Monthly trend panel */
 .panel-grid {
     display: grid;
@@ -874,26 +1239,35 @@ a {
     width: 100%;
 }
 
-.panel-title {
-    margin: 0 0 14px 0;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--bbva-text);
+.mortgage-schedule-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(7, 33, 70, 0.08);
+  background: #f8fbff;
+  border-radius: 0 0 20px 20px;
 }
 
-.panel .js-plotly-plot,
-.panel .plot-container,
-.panel .svg-container {
-    width: 100% !important;
+.schedule-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
 }
 
-.trend-graph-desktop {
-  display: block;
+.schedule-summary-label {
+  font-size: 13px;
+  color: var(--bbva-text-soft);
+  font-weight: 600;
 }
 
-.trend-graph-mobile {
-  display: none;
+.schedule-summary-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--bbva-number);
 }
 
 .year-evolution-desktop {
@@ -1232,6 +1606,143 @@ a {
 
 #transactions-table table tbody tr:hover td:first-child {
   box-shadow: inset 3px 0 0 #1973B8;
+}
+
+/* Merchant card styles */
+.merchant-summary-card {
+  position: relative;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border: 1px solid rgba(7, 33, 70, 0.08);
+  border-radius: 24px;
+  padding: 22px 22px 22px 22px;
+  box-shadow: 0 10px 28px rgba(7, 33, 70, 0.08);
+  min-height: 300px;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.merchant-summary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--bbva-blue-600), var(--bbva-aqua));
+  z-index: 5;
+}
+
+.merchant-summary-content {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.merchant-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.merchant-summary-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--bbva-text);
+  letter-spacing: -0.02em;
+}
+
+.merchant-summary-subtitle {
+  font-size: 13px;
+  color: var(--bbva-text-soft);
+  font-weight: 600;
+}
+
+.merchant-summary-main {
+  display: block;
+  flex: 1;
+}
+
+.merchant-current-value {
+  font-size: 35px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--bbva-number);
+  margin-bottom: 18px;
+}
+
+.merchant-secondary-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.merchant-summary-chart-wrap {
+  position: relative;
+  margin-top: -6px;
+  padding: 0 6px 2px 6px;
+  height: 105px;
+  z-index: 2;
+  opacity: 0.64;
+  pointer-events: auto;
+}
+
+.merchant-summary-chart-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(255, 255, 255, 0.62) 16%,
+    rgba(255, 255, 255, 0.30) 32%,
+    rgba(255, 255, 255, 0.10) 52%,
+    rgba(255, 255, 255, 0.00) 74%
+  );
+  pointer-events: none;
+}
+
+.merchant-summary-chart-wrap .js-plotly-plot,
+.merchant-summary-chart-wrap .plot-container,
+.merchant-summary-chart-wrap .svg-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Merchant detail table */
+.merchant-detail {
+  position: relative;
+  background: white;
+  border: 1px solid rgba(7, 33, 70, 0.08);
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-top: 24px;
+  overflow: hidden;
+}
+
+#merchant-transactions-table table tbody tr:hover td {
+  background-color: rgba(25, 115, 184, 0.08) !important;
+  color: #072146 !important;
+}
+
+#merchant-transactions-table table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 #1973B8;
+}
+
+@media (max-width: 900px) {
+  #merchant-transactions-table .dash-spreadsheet-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #merchant-transactions-table .dash-spreadsheet-inner table {
+    min-width: 500px;
+  }
 }
 
 

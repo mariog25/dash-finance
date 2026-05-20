@@ -31,6 +31,7 @@ def build_sidebar():
                     nav_item("Merchant Revision", "◫", "/merchant-revision"),
                     nav_item("Year Evolution", "⊕", "/year-evolution"),
                     nav_item("Mortgage Revision", "↻", "/mortgage-revision"),
+                    nav_item("Tax Review", "⚖", "/tax-review"),
                 ],
             ),
         ],
