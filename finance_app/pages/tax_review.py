@@ -38,7 +38,7 @@ def build_filter_row():
             dcc.Dropdown(
                 id="tax-filter-year",
                 options=year_options,
-                value=year_options[0]["value"] if year_options else None,
+                value=default_year,
                 clearable=False,
                 className="filter-year",
             ),
@@ -221,7 +221,7 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, year_value, filter_
     triggered = ctx.triggered_id
 
     if triggered == "tax-add-button":
-        form_year = default_form_year
+        form_year = int(filter_year) if filter_year else default_form_year
         existing_record = get_tax_payment_for_year(form_year)
         if existing_record:
             return (
