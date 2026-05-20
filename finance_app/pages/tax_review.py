@@ -24,6 +24,7 @@ year_options = [
     for y in sorted(years, reverse=True)
 ]
 default_year = year_options[0]["value"] if year_options else str(pd.Timestamp.now().year)
+default_form_year = pd.Timestamp.now().year - 1
 
 def build_filter_row():
     return html.Div(
@@ -104,7 +105,7 @@ layout = html.Div(
                                             type="number",
                                             min=1900,
                                             max=2100,
-                                            value=int(default_year) if default_year else None,
+                                            value=default_form_year,
                                             className="form-input",
                                         ),
                                     ],
@@ -216,7 +217,8 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, year_value, filter_
     triggered = ctx.triggered_id
 
     if triggered == "tax-add-button":
-        existing_record = get_tax_payment_for_year(int(filter_year)) if filter_year else None
+        form_year = default_form_year
+        existing_record = get_tax_payment_for_year(form_year)
         if existing_record:
             return (
                 None,
@@ -232,7 +234,7 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, year_value, filter_
         return (
             None,
             {"display": "flex"},
-            filter_year,
+            form_year,
             None,
             None,
             None,
