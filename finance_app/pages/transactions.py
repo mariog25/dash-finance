@@ -10,7 +10,7 @@ from services.finance_queries import (
     get_category_12m_trend,
     get_transactions_by_category,
 )
-from utils.formatters import format_eur_es
+from utils.formatters import format_eur_es, mask_digits
 
 dash.register_page(__name__, path="/transactions", name="Detailed Operations")
 
@@ -112,6 +112,7 @@ def build_category_donut_figure(
     avg_12m: float = 0.0,
     pct_vs_avg: float = 0.0,
     deviation_color: str = "#7b8a9a",
+    hidden: bool = False,
 ):
     required_cols = {"category_l1", "category_l2", "total_amount"}
 
@@ -189,7 +190,7 @@ def build_category_donut_figure(
                     },
                 },
                 customdata=[
-                    [format_eur_es(v)]
+                    [format_eur_es(v, masked=hidden)]
                     for v in cat_df["total_amount"]
                 ],
 
@@ -219,10 +220,10 @@ def build_category_donut_figure(
             {
                 "text": (
                     f"<span style='font-size:12px;color:#7b8a9a'>Monthtly Total</span><br>"
-                    f"<b>{format_eur_es(total)}</b><br>"
+                    f"<b>{format_eur_es(total, masked=hidden)}</b><br>"
                     f"<span style='font-size:12px;color:#7b8a9a'>Avg Last 12 mo</span><br>"
-                    f"<span style='font-size:11px;>{format_eur_es(avg_12m)}</span>  "
-                    f"<span style='font-size:11px;color:{deviation_color}'><b>{format_pct_es(pct_vs_avg)}</b></span><br>"                    
+                    f"<span style='font-size:11px;'>{format_eur_es(avg_12m, masked=hidden)}</span>  "
+                    f"<span style='font-size:11px;color:{deviation_color}'><b>{format_pct_es(pct_vs_avg, masked=hidden)}</b></span><br>"                    
                 ),
                 "xref": "paper",
                 "yref": "paper",
@@ -241,6 +242,7 @@ def build_category_trend_figure(
     trend_df: pd.DataFrame,
     category_l1: str,
     line_color: str,
+    hidden: bool = False,
 ):
     required_cols = {"month", "category_l1", "total_amount"}
 
@@ -263,7 +265,7 @@ def build_category_trend_figure(
             {
                 "x": cat_df["label"],
                 "y": cat_df["total_amount"],
-                "customdata": [format_eur_es(v) for v in cat_df["total_amount"]],
+                "customdata": [format_eur_es(v, masked=hidden) for v in cat_df["total_amount"]],
                 "type": "scatter",
                 "mode": "lines+markers",
                 "fill": "tozeroy",
@@ -440,8 +442,10 @@ layout = html.Div(
     Input("transactions-selected-segment", "data"),
     Input("transactions-year-filter", "value"),
     Input("transactions-month-filter", "value"),
+    Input("visibility-store", "data"),
 )
-def update_transactions_table(selection, year, month):
+def update_transactions_table(selection, year, month, visibility_data):
+    hidden = not bool(visibility_data and visibility_data.get("visible", True))
 
     if not selection:
         return [], "Select a segment to view transactions"
@@ -454,7 +458,7 @@ def update_transactions_table(selection, year, month):
         selection["category_l2"],
     )
 
-    df["amount"] = df["amount"].apply(format_eur_es)
+    df["amount"] = df["amount"].apply(lambda v: format_eur_es(v, masked=hidden))
 
     title = f"{selection['category_l1']} / {selection['category_l2']}"
 
@@ -503,6 +507,7 @@ def load_transactions_data(year, month):
     Input("shopping-donut", "hoverData"),
     Input("entertainment-donut", "hoverData"),
     Input("finance-donut", "hoverData"),
+    Input("visibility-store", "data"),
 )
 def render_transaction_charts(
     breakdown_data,
@@ -513,7 +518,9 @@ def render_transaction_charts(
     shopping_hover,
     entertainment_hover,
     finance_hover,
+    visibility_data,
 ):
+    hidden = not bool(visibility_data and visibility_data.get("visible", True))
     breakdown_df = pd.DataFrame(breakdown_data or [])
     trend_df = pd.DataFrame(trend_data or [])
 
@@ -532,6 +539,7 @@ def render_transaction_charts(
         avg_12m=groceries_metrics["avg_12m"],
         pct_vs_avg=groceries_metrics["pct_vs_avg"],
         deviation_color=groceries_metrics["deviation_color"],
+        hidden=hidden,
     )
     utilities_donut = build_category_donut_figure(
         breakdown_df,
@@ -541,6 +549,7 @@ def render_transaction_charts(
         avg_12m=utilities_metrics["avg_12m"],
         pct_vs_avg=utilities_metrics["pct_vs_avg"],
         deviation_color=utilities_metrics["deviation_color"],
+        hidden=hidden,
     )
     transport_donut = build_category_donut_figure(
         breakdown_df,
@@ -550,6 +559,7 @@ def render_transaction_charts(
         avg_12m=transport_metrics["avg_12m"],
         pct_vs_avg=transport_metrics["pct_vs_avg"],
         deviation_color=transport_metrics["deviation_color"],
+        hidden=hidden,
     )
     shopping_donut = build_category_donut_figure(
         breakdown_df,
@@ -559,6 +569,7 @@ def render_transaction_charts(
         avg_12m=shopping_metrics["avg_12m"],
         pct_vs_avg=shopping_metrics["pct_vs_avg"],
         deviation_color=shopping_metrics["deviation_color"],
+        hidden=hidden,
     )
     entertainment_donut = build_category_donut_figure(
         breakdown_df,
@@ -568,6 +579,7 @@ def render_transaction_charts(
         avg_12m=entertainment_metrics["avg_12m"],
         pct_vs_avg=entertainment_metrics["pct_vs_avg"],
         deviation_color=entertainment_metrics["deviation_color"],
+        hidden=hidden,
     )
     finance_donut = build_category_donut_figure(
         breakdown_df,
@@ -577,14 +589,15 @@ def render_transaction_charts(
         avg_12m=finance_metrics["avg_12m"],
         pct_vs_avg=finance_metrics["pct_vs_avg"],
         deviation_color=finance_metrics["deviation_color"],
+        hidden=hidden,
     )
 
-    groceries_trend = build_category_trend_figure(trend_df, "groceries", "#1973B8")
-    utilities_trend = build_category_trend_figure(trend_df, "utilities", "#F8CD51")
-    transport_trend = build_category_trend_figure(trend_df, "transport", "#6B5DD3")
-    shopping_trend = build_category_trend_figure(trend_df, "shopping", "#00A3A3")
-    entertainment_trend = build_category_trend_figure(trend_df, "entertainment", "#DA3851")
-    finance_trend = build_category_trend_figure(trend_df, "finance", "#00A86B")
+    groceries_trend = build_category_trend_figure(trend_df, "groceries", "#1973B8", hidden=hidden)
+    utilities_trend = build_category_trend_figure(trend_df, "utilities", "#F8CD51", hidden=hidden)
+    transport_trend = build_category_trend_figure(trend_df, "transport", "#6B5DD3", hidden=hidden)
+    shopping_trend = build_category_trend_figure(trend_df, "shopping", "#00A3A3", hidden=hidden)
+    entertainment_trend = build_category_trend_figure(trend_df, "entertainment", "#DA3851", hidden=hidden)
+    finance_trend = build_category_trend_figure(trend_df, "finance", "#00A86B", hidden=hidden)
 
     return (
         groceries_donut,
@@ -640,9 +653,10 @@ def update_selected_segment(*clicks):
     }
 
 
-def format_pct_es(value: float) -> str:
+def format_pct_es(value: float, masked: bool = False) -> str:
     sign = "+" if value > 0 else ""
-    return f"{sign}{value:.1f}%".replace(".", ",")
+    formatted = f"{sign}{value:.1f}%".replace(".", ",")
+    return mask_digits(formatted) if masked else formatted
 
 
 def get_category_summary_metrics(trend_df: pd.DataFrame, category_l1: str):

@@ -22,7 +22,19 @@ def build_sidebar():
         className="sidebar",
         children=[
             html.Div("DL", className="sidebar-logo"),
-            html.H2("Finance", className="sidebar-title"),
+            html.Div(
+                className="sidebar-title-row",
+                children=[
+                    html.H2("My Finances", className="sidebar-title"),
+                    html.Button(
+                        "◉",
+                        id="toggle-visibility-btn",
+                        className="visibility-toggle-btn",
+                        n_clicks=0,
+                        title="Toggle number visibility",
+                    ),
+                ],
+            ),
             html.Div(
                 className="sidebar-menu",
                 children=[

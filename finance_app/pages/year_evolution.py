@@ -114,8 +114,10 @@ layout = html.Div(
     Output("year-evolution-year-total-chart-mobile", "figure"),
     Input("year-filter", "value"),
     Input("month-filter", "value"),
+    Input("visibility-store", "data"),
 )
-def update_year_evolution(year, month):
+def update_year_evolution(year, month, visibility_data):
+    hidden = not bool(visibility_data and visibility_data.get("visible", True))
     if not year or not month:
         empty = empty_bar_figure()
         return empty, empty, empty, empty
@@ -145,10 +147,10 @@ def update_year_evolution(year, month):
     annual_df_mobile["label"] = annual_df_mobile["year"].astype(str)
     annual_df_mobile["is_selected"] = annual_df_mobile["year"] == int(year)
 
-    month_fig_desktop = build_monthly_trend_figure(month_df_desktop, show_savings_bar=False, show_cumulative_savings=False, chart_type="area")
-    annual_fig_desktop = build_monthly_trend_figure(annual_df_desktop, show_savings_bar=False, show_cumulative_savings=True)
+    month_fig_desktop = build_monthly_trend_figure(month_df_desktop, show_savings_bar=False, show_cumulative_savings=False, chart_type="area", hidden=hidden)
+    annual_fig_desktop = build_monthly_trend_figure(annual_df_desktop, show_savings_bar=False, show_cumulative_savings=True, hidden=hidden)
     
-    month_fig_mobile = build_monthly_trend_figure(month_df_mobile, show_savings_bar=False, show_cumulative_savings=False, chart_type="area")
-    annual_fig_mobile = build_monthly_trend_figure(annual_df_mobile, show_savings_bar=False, show_cumulative_savings=True)
+    month_fig_mobile = build_monthly_trend_figure(month_df_mobile, show_savings_bar=False, show_cumulative_savings=False, chart_type="area", hidden=hidden)
+    annual_fig_mobile = build_monthly_trend_figure(annual_df_mobile, show_savings_bar=False, show_cumulative_savings=True, hidden=hidden)
 
     return month_fig_desktop, annual_fig_desktop, month_fig_mobile, annual_fig_mobile

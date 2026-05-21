@@ -384,8 +384,10 @@ def handle_tax_modal(add_clicks, cancel_clicks, save_clicks, year_value, filter_
     Output("tax-yearly-breakdown-chart", "figure"),
     Input("tax-filter-year", "value"),
     Input("tax-review-status", "children"),
+    Input("visibility-store", "data"),
 )
-def update_tax_dashboard(selected_year, _status):
+def update_tax_dashboard(selected_year, _status, visibility_data):
+    hidden = not bool(visibility_data and visibility_data.get("visible", True))
     def empty_figure():
         return {"data": [], "layout": {}}
 
@@ -406,66 +408,69 @@ def update_tax_dashboard(selected_year, _status):
 
     trend_years = trend_df["fiscal_year"].tolist()
 
-    def metric_values(metric_key, label):
+    def metric_values(metric_key, label, hidden=False):
         if selected_row is None:
             return "-", 0.0, 0.0
         current = float(selected_row.get(metric_key, 0.0) or 0.0)
         prev_avg = float(previous_years[metric_key].mean()) if not previous_years.empty else 0.0
         pct = ((current - prev_avg) / prev_avg) * 100.0 if prev_avg else 0.0
-        return format_eur_es(current), prev_avg, pct
+        return format_eur_es(current, masked=hidden), prev_avg, pct
 
-    employee_current, employee_avg, employee_pct = metric_values("employee_total", "Employee total")
+    employee_current, employee_avg, employee_pct = metric_values("employee_total", "Employee total", hidden)
     employee_class = deviation_class("expense", employee_pct)
-    employee_irpf = format_eur_es(selected_row["employee_irpf_total"]) if selected_row is not None else "-"
-    employee_ss = format_eur_es(selected_row["employee_ss_total"]) if selected_row is not None else "-"
+    employee_irpf = format_eur_es(selected_row["employee_irpf_total"], masked=hidden) if selected_row is not None else "-"
+    employee_ss = format_eur_es(selected_row["employee_ss_total"], masked=hidden) if selected_row is not None else "-"
     employee_figure = build_tax_employee_trend_figure(
         trend_years,
         trend_df["employee_total"].tolist(),
+        hidden=hidden,
     )
 
-    employer_current, employer_avg, employer_pct = metric_values("employer_burden_total", "Employer burden total")
+    employer_current, employer_avg, employer_pct = metric_values("employer_burden_total", "Employer burden total", hidden)
     employer_class = deviation_class("expense", employer_pct)
-    employer_irpf = format_eur_es(selected_row["employee_irpf_total"]) if selected_row is not None else "-"
-    employer_employee_ss = format_eur_es(selected_row["employee_ss_total"]) if selected_row is not None else "-"
-    employer_employer_ss = format_eur_es(selected_row["employer_ss_total"]) if selected_row is not None else "-"
+    employer_irpf = format_eur_es(selected_row["employee_irpf_total"], masked=hidden) if selected_row is not None else "-"
+    employer_employee_ss = format_eur_es(selected_row["employee_ss_total"], masked=hidden) if selected_row is not None else "-"
+    employer_employer_ss = format_eur_es(selected_row["employer_ss_total"], masked=hidden) if selected_row is not None else "-"
     employer_figure = build_tax_state_trend_figure(
         trend_years,
         trend_df["employer_burden_total"].tolist(),
+        hidden=hidden,
     )
 
-    company_current, company_avg, company_pct = metric_values("company_cost_total", "Company cost total")
+    company_current, company_avg, company_pct = metric_values("company_cost_total", "Company cost total", hidden)
     company_class = deviation_class("expense", company_pct)
-    company_salary = format_eur_es(selected_row["salary_net_total"]) if selected_row is not None else "-"
-    company_employee_ss = format_eur_es(selected_row["employee_ss_total"]) if selected_row is not None else "-"
-    company_employer_ss = format_eur_es(selected_row["employer_ss_total"]) if selected_row is not None else "-"
-    company_irpf = format_eur_es(selected_row["employee_irpf_total"]) if selected_row is not None else "-"
+    company_salary = format_eur_es(selected_row["salary_net_total"], masked=hidden) if selected_row is not None else "-"
+    company_employee_ss = format_eur_es(selected_row["employee_ss_total"], masked=hidden) if selected_row is not None else "-"
+    company_employer_ss = format_eur_es(selected_row["employer_ss_total"], masked=hidden) if selected_row is not None else "-"
+    company_irpf = format_eur_es(selected_row["employee_irpf_total"], masked=hidden) if selected_row is not None else "-"
     company_figure = build_tax_company_trend_figure(
         trend_years,
         trend_df["company_cost_total"].tolist(),
+        hidden=hidden,
     )
 
-    breakdown_figure = build_tax_breakdown_figure(trend_df, year_int)
+    breakdown_figure = build_tax_breakdown_figure(trend_df, year_int, hidden=hidden)
 
     return (
         employee_current,
-        format_eur_es(employee_avg),
-        format_pct_es(employee_pct),
+        format_eur_es(employee_avg, masked=hidden),
+        format_pct_es(employee_pct, masked=hidden),
         employee_class,
         employee_irpf,
         employee_ss,
         employee_figure,
 
         employer_current,
-        format_eur_es(employer_avg),
-        format_pct_es(employer_pct),
+        format_eur_es(employer_avg, masked=hidden),
+        format_pct_es(employer_pct, masked=hidden),
         employer_class,
         employer_irpf,
         f"{employer_employee_ss} / {employer_employer_ss}",
         employer_figure,
 
         company_current,
-        format_eur_es(company_avg),
-        format_pct_es(company_pct),
+        format_eur_es(company_avg, masked=hidden),
+        format_pct_es(company_pct, masked=hidden),
         company_class,
         company_salary,
         f"{company_employee_ss} / {company_employer_ss}",

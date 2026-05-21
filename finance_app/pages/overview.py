@@ -211,9 +211,11 @@ layout = html.Div(
     [
         Input("year-filter", "value"),
         Input("month-filter", "value"),
+        Input("visibility-store", "data"),
     ]
 )
-def update_dashboard(year, month):
+def update_dashboard(year, month, visibility_data):
+    hidden = not bool(visibility_data and visibility_data.get("visible", True))
     if not year or not month:
         empty = empty_bar_figure()
         return (
@@ -233,8 +235,8 @@ def update_dashboard(year, month):
     income = get_income_insight(selected_month)
     savings = get_savings_insight(selected_month)
 
-    desktop_figure = build_monthly_trend_figure(trend_df_monthly)
-    mobile_figure = build_monthly_trend_figure(trend_df_four_month)
+    desktop_figure = build_monthly_trend_figure(trend_df_monthly, hidden=hidden)
+    mobile_figure = build_monthly_trend_figure(trend_df_four_month, hidden=hidden)
 
     expense_months = expense["series_months"]
     expense_values = expense["series_values"]
@@ -250,6 +252,7 @@ def update_dashboard(year, month):
         fillpattern_shape="/",
         fillpattern_fg="rgba(190, 62, 70, 0.12)",
         fillpattern_bg="rgba(190, 62, 70, 0.01)",
+        hidden=hidden,
     )
 
     income_months = income["series_months"]
@@ -266,6 +269,7 @@ def update_dashboard(year, month):
         fillpattern_shape="\\",
         fillpattern_fg="rgba(25, 115, 184, 0.12)",
         fillpattern_bg="rgba(25, 115, 184, 0.01)",
+        hidden=hidden,
     )
 
     savings_months = savings["series_months"]
@@ -282,6 +286,7 @@ def update_dashboard(year, month):
         fillpattern_shape="|",
         fillpattern_fg="rgba(214, 143, 34, 0.18)",
         fillpattern_bg="rgba(214, 143, 34, 0.01)",
+        hidden=hidden,
     )
 
     expense_pct = expense["pct_vs_avg"]
@@ -293,26 +298,26 @@ def update_dashboard(year, month):
     return (
         desktop_figure,
         mobile_figure,
-        format_eur_es(expense["current_expense"]),
-        format_eur_es(expense["avg_12m"]),
-        format_pct_es(expense_pct),
+        format_eur_es(expense["current_expense"], masked=hidden),
+        format_eur_es(expense["avg_12m"], masked=hidden),
+        format_pct_es(expense_pct, masked=hidden),
         deviation_class("expense", expense_pct),
-        format_eur_es(expense["ytd_expense"]),
+        format_eur_es(expense["ytd_expense"], masked=hidden),
         expense_figure,
-        format_daily_es(burn_rate),
+        format_daily_es(burn_rate, masked=hidden),
 
-        format_eur_es(income["current_income"]),
-        format_eur_es(income["avg_12m"]),
-        format_pct_es(income_pct),
+        format_eur_es(income["current_income"], masked=hidden),
+        format_eur_es(income["avg_12m"], masked=hidden),
+        format_pct_es(income_pct, masked=hidden),
         deviation_class("income", income_pct),
-        format_eur_es(income["ytd_income"]),
+        format_eur_es(income["ytd_income"], masked=hidden),
         income_figure,
 
-        format_eur_es(savings["current_savings"]),
-        format_eur_es(savings["avg_12m"]),
-        format_pct_es(savings_pct),
+        format_eur_es(savings["current_savings"], masked=hidden),
+        format_eur_es(savings["avg_12m"], masked=hidden),
+        format_pct_es(savings_pct, masked=hidden),
         deviation_class("savings", savings_pct),
-        format_eur_es(savings["ytd_savings"]),
+        format_eur_es(savings["ytd_savings"], masked=hidden),
         savings_figure,
     )
 
@@ -327,6 +332,7 @@ def build_insight_sparkline(
     fillpattern_shape=None,
     fillpattern_fg=None,
     fillpattern_bg=None,
+    hidden: bool = False,
 ):
     y_min = min(values) if values else 0
     y_max = max(values) if values else 1
@@ -343,7 +349,7 @@ def build_insight_sparkline(
             {
                 "x": months,
                 "y": values,
-                "customdata": [format_eur_es(v) for v in values],
+                "customdata": [format_eur_es(v, masked=hidden) for v in values],
                 "type": "scatter",
                 "mode": "lines+markers",
                 "hoveron": "points",

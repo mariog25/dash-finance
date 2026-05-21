@@ -74,7 +74,7 @@ def build_tax_company_card():
     )
 
 
-def build_tax_company_trend_figure(years, values):
+def build_tax_company_trend_figure(years, values, hidden: bool = False):
     return build_tax_card_trend_figure(
         years,
         values,
@@ -83,4 +83,5 @@ def build_tax_company_trend_figure(years, values):
         "|",
         "rgba(214, 143, 34, 0.18)",
         "rgba(214, 143, 34, 0.01)",
+        hidden=hidden,
     )

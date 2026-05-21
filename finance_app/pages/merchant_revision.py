@@ -72,7 +72,7 @@ def empty_trend_figure(message: str = "No trend data"):
     }
 
 
-def build_merchant_trend_figure(series_months: list, series_values: list):
+def build_merchant_trend_figure(series_months: list, series_values: list, hidden: bool = False):
     """Build a trend chart for merchant data."""
     if not series_months or not series_values:
         return empty_trend_figure()
@@ -82,7 +82,7 @@ def build_merchant_trend_figure(series_months: list, series_values: list):
             {
                 "x": series_months,
                 "y": series_values,
-                "customdata": [format_eur_es(v) for v in series_values],
+                "customdata": [format_eur_es(v, masked=hidden) for v in series_values],
                 "type": "scatter",
                 "mode": "lines+markers",
                 "fill": "tozeroy",
@@ -272,8 +272,10 @@ layout = html.Div(
     Input("merchant-year-filter", "value"),
     Input("merchant-month-filter", "value"),
     Input("merchant-name-input", "value"),
+    Input("visibility-store", "data"),
 )
-def update_merchant_data(year, month, merchant_name):
+def update_merchant_data(year, month, merchant_name, visibility_data):
+    hidden = not bool(visibility_data and visibility_data.get("visible", True))
     if not year or not month or not merchant_name:
         return (
             "-", "No merchant selected",
@@ -302,21 +304,22 @@ def update_merchant_data(year, month, merchant_name):
         )
 
     # Format card values
-    current_value = format_eur_es(merchant_data["current_total"])
-    avg_12m = format_eur_es(merchant_data["avg_12m"])
-    pct_vs_avg = format_pct_es(merchant_data["pct_vs_avg"])
+    current_value = format_eur_es(merchant_data["current_total"], masked=hidden)
+    avg_12m = format_eur_es(merchant_data["avg_12m"], masked=hidden)
+    pct_vs_avg = format_pct_es(merchant_data["pct_vs_avg"], masked=hidden)
     deviation_cls = deviation_class("expense", merchant_data["pct_vs_avg"])
-    accumulated_12m = format_eur_es(merchant_data["accumulated_12m"])
+    accumulated_12m = format_eur_es(merchant_data["accumulated_12m"], masked=hidden)
 
     # Build trend chart
     trend_fig = build_merchant_trend_figure(
         merchant_data["series_months"],
-        merchant_data["series_values"]
+        merchant_data["series_values"],
+        hidden=hidden,
     )
 
     # Format transactions table
     if not transactions_df.empty:
-        transactions_df["amount"] = transactions_df["amount"].apply(format_eur_es)
+        transactions_df["amount"] = transactions_df["amount"].apply(lambda v: format_eur_es(v, masked=hidden))
         table_data = transactions_df.to_dict("records")
     else:
         table_data = []

@@ -222,9 +222,10 @@ layout = html.Div(
         Output("mortgage-schedule-total-interest", "children"),
         Output("mortgage-schedule-total-amortization", "children"),
     ],
-    [Input("mortgage-year-filter", "value")]
+    [Input("mortgage-year-filter", "value"), Input("visibility-store", "data")]
 )
-def update_mortgage_dashboard(year):
+def update_mortgage_dashboard(year, visibility_data):
+    hidden = not bool(visibility_data and visibility_data.get("visible", True))
     if not year:
         empty_figure = {"data": [], "layout": {}}
         return (
@@ -251,7 +252,7 @@ def update_mortgage_dashboard(year):
     accumulated_amortization_to_year = schedule_df[schedule_df["year"] <= selected_year_int]["total_amortization"].sum() if not schedule_df.empty else 0.0
 
     # Build sparkline figures
-    def build_sparkline(years, values, line_color, fill_color, dot_color, fillpattern_shape=None, fillpattern_fg=None, fillpattern_bg=None):
+    def build_sparkline(years, values, line_color, fill_color, dot_color, fillpattern_shape=None, fillpattern_fg=None, fillpattern_bg=None, hidden=False):
         if not values:
             return {"data": [], "layout": {}}
 
@@ -265,7 +266,7 @@ def update_mortgage_dashboard(year):
             {
                 "x": years,
                 "y": values,
-                "customdata": [format_eur_es(v) for v in values],
+                "customdata": [format_eur_es(v, masked=hidden) for v in values],
                 "type": "scatter",
                 "mode": "lines+markers",
                 "hoveron": "points",
@@ -328,7 +329,8 @@ def update_mortgage_dashboard(year):
         "rgba(190, 62, 70, 0.95)",
         "/",
         "rgba(190, 62, 70, 0.12)",
-        "rgba(190, 62, 70, 0.01)"
+        "rgba(190, 62, 70, 0.01)",
+        hidden=hidden,
     )
 
     interest_figure = build_sparkline(
@@ -339,7 +341,8 @@ def update_mortgage_dashboard(year):
         "rgba(214, 143, 34, 0.95)",
         "|",
         "rgba(214, 143, 34, 0.18)",
-        "rgba(214, 143, 34, 0.01)"
+        "rgba(214, 143, 34, 0.01)",
+        hidden=hidden,
     )
 
     amortization_figure = build_sparkline(
@@ -350,32 +353,33 @@ def update_mortgage_dashboard(year):
         "rgba(25, 115, 184, 0.95)",
         "\\",
         "rgba(25, 115, 184, 0.12)",
-        "rgba(25, 115, 184, 0.01)"
+        "rgba(25, 115, 184, 0.01)",
+        hidden=hidden,
     )
 
     return (
-        format_eur_es(payment_insight["current"]),
-        format_eur_es(payment_insight["avg_10y"]),
-        format_pct_es(payment_insight["pct_vs_avg"]),
+        format_eur_es(payment_insight["current"], masked=hidden),
+        format_eur_es(payment_insight["avg_10y"], masked=hidden),
+        format_pct_es(payment_insight["pct_vs_avg"], masked=hidden),
         deviation_class("expense", payment_insight["pct_vs_avg"]),  # Higher payment is bad
         payment_figure,
-        f"{format_eur_es(accumulated_payment_to_year)}/{format_eur_es(total_projected_payment)} ({format_pct_es(accumulated_payment_to_year / total_projected_payment * 100) if total_projected_payment > 0 else '0,00%'})",
+        f"{format_eur_es(accumulated_payment_to_year, masked=hidden)}/{format_eur_es(total_projected_payment, masked=hidden)} ({format_pct_es(accumulated_payment_to_year / total_projected_payment * 100, masked=hidden) if total_projected_payment > 0 else '0,00%'})",
 
-        format_eur_es(interest_insight["current"]),
-        format_eur_es(interest_insight["avg_10y"]),
-        format_pct_es(interest_insight["pct_vs_avg"]),
+        format_eur_es(interest_insight["current"], masked=hidden),
+        format_eur_es(interest_insight["avg_10y"], masked=hidden),
+        format_pct_es(interest_insight["pct_vs_avg"], masked=hidden),
         deviation_class("expense", interest_insight["pct_vs_avg"]),  # Higher interest is bad
         interest_figure,
-        f"{format_eur_es(accumulated_interest_to_year)}/{format_eur_es(total_projected_interest)} ({format_pct_es(accumulated_interest_to_year / total_projected_interest * 100) if total_projected_interest > 0 else '0,00%'})",
+        f"{format_eur_es(accumulated_interest_to_year, masked=hidden)}/{format_eur_es(total_projected_interest, masked=hidden)} ({format_pct_es(accumulated_interest_to_year / total_projected_interest * 100, masked=hidden) if total_projected_interest > 0 else '0,00%'})",
 
-        format_eur_es(amortization_insight["current"]),
-        format_eur_es(amortization_insight["avg_10y"]),
-        format_pct_es(amortization_insight["pct_vs_avg"]),
+        format_eur_es(amortization_insight["current"], masked=hidden),
+        format_eur_es(amortization_insight["avg_10y"], masked=hidden),
+        format_pct_es(amortization_insight["pct_vs_avg"], masked=hidden),
         deviation_class("income", amortization_insight["pct_vs_avg"]),  # Higher amortization is good
         amortization_figure,
-        f"{format_eur_es(accumulated_amortization_to_year)}/{format_eur_es(total_projected_amortization)} ({format_pct_es(accumulated_amortization_to_year / total_projected_amortization * 100) if total_projected_amortization > 0 else '0,00%'})",
+        f"{format_eur_es(accumulated_amortization_to_year, masked=hidden)}/{format_eur_es(total_projected_amortization, masked=hidden)} ({format_pct_es(accumulated_amortization_to_year / total_projected_amortization * 100, masked=hidden) if total_projected_amortization > 0 else '0,00%'})",
 
         schedule_df.to_dict("records"),
-        format_eur_es(total_projected_interest),
-        format_eur_es(total_projected_amortization),
+        format_eur_es(total_projected_interest, masked=hidden),
+        format_eur_es(total_projected_amortization, masked=hidden),
     )

@@ -67,7 +67,7 @@ def build_tax_employee_card():
     )
 
 
-def build_tax_employee_trend_figure(years, values):
+def build_tax_employee_trend_figure(years, values, hidden: bool = False):
     return build_tax_card_trend_figure(
         years,
         values,
@@ -76,6 +76,7 @@ def build_tax_employee_trend_figure(years, values):
         "/",
         "rgba(190, 62, 70, 0.12)",
         "rgba(190, 62, 70, 0.01)",
+        hidden=hidden,
     )
 
 
@@ -87,6 +88,7 @@ def build_tax_card_trend_figure(
     fillpattern_shape=None,
     fillpattern_fg=None,
     fillpattern_bg=None,
+    hidden: bool = False,
 ):
     if not years or not values:
         return {"data": [], "layout": {}}
@@ -96,7 +98,7 @@ def build_tax_card_trend_figure(
             {
                 "x": years,
                 "y": values,
-                "customdata": [format_eur_es(v) for v in values],
+                "customdata": [format_eur_es(v, masked=hidden) for v in values],
                 "type": "scatter",
                 "mode": "lines",
                 "fill": "tozeroy",
@@ -109,7 +111,7 @@ def build_tax_card_trend_figure(
                 "fillcolor": fill_color,
                 "hovertemplate": (
                     "<b>%{x}</b><br>"
-                    "%{customdata} €"
+                    "%{customdata}"
                     "<extra></extra>"
                 ),
                 "fillpattern": {

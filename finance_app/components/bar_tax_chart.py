@@ -6,7 +6,7 @@ from components.monthly_trend_panel import empty_bar_figure
 from utils.formatters import format_eur_es, format_pct_es
 
 
-def build_tax_breakdown_figure(df: pd.DataFrame, selected_year: int):
+def build_tax_breakdown_figure(df: pd.DataFrame, selected_year: int, hidden: bool = False):
     if df.empty:
         return empty_bar_figure("No tax breakdown data available")
 
@@ -30,7 +30,7 @@ def build_tax_breakdown_figure(df: pd.DataFrame, selected_year: int):
         for t, g in zip(total_taxes, gross_salary)
     ]
     customdata_total = [
-        [format_eur_es(t), format_pct_es(p)]
+        [format_eur_es(t, masked=hidden), format_pct_es(p, masked=hidden)]
         for t, p in zip(total_taxes, percent_of_gross)
     ]
 
@@ -41,7 +41,7 @@ def build_tax_breakdown_figure(df: pd.DataFrame, selected_year: int):
             x=labels,
             y=values,
             name=name,
-            customdata=[[format_eur_es(v)] for v in values],
+            customdata=[[format_eur_es(v, masked=hidden)] for v in values],
             cliponaxis=False,
             width=0.5,
             marker={

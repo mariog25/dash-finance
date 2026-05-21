@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from config.finance_theme import SEMANTIC
-from utils.formatters import format_eur_es, format_k_es 
+from utils.formatters import format_eur_es, format_k_es, mask_digits
 
 def empty_bar_figure(message: str = "No data available for the selected period"):
     return {
@@ -28,18 +28,18 @@ def empty_bar_figure(message: str = "No data available for the selected period")
         },
     }
 
-def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False, show_cumulative_savings: bool = True, chart_type: str = "bar"):
+def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False, show_cumulative_savings: bool = True, chart_type: str = "bar", hidden: bool = False):
     if df.empty:
         return empty_bar_figure()
 
     expense_cd = list(zip(
-        [format_eur_es(v) for v in df["expense_total"]],
-        [format_eur_es(v) for v in df["income_total"]],
-        [format_eur_es(v) for v in df["net_total"]],
-        [format_eur_es(v) for v in df["cumulative_savings"]],
+        [format_eur_es(v, masked=hidden) for v in df["expense_total"]],
+        [format_eur_es(v, masked=hidden) for v in df["income_total"]],
+        [format_eur_es(v, masked=hidden) for v in df["net_total"]],
+        [format_eur_es(v, masked=hidden) for v in df["cumulative_savings"]],
     ))
     income_cd = expense_cd
-    savings_cd = [[format_eur_es(i - e)] for i, e in zip(df["income_total"], df["expense_total"])]
+    savings_cd = [[format_eur_es(i - e, masked=hidden)] for i, e in zip(df["income_total"], df["expense_total"])]
 
     fig = go.Figure()
 
@@ -50,7 +50,7 @@ def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False,
             name="Expenses",
             offsetgroup="expense",
             customdata=expense_cd,
-            text=[format_k_es(v) if float(v or 0) != 0 else "" for v in df["expense_total"]],
+            text=[format_k_es(v, masked=hidden) if float(v or 0) != 0 else "" for v in df["expense_total"]],
             texttemplate="%{text}",
             textposition="outside",
             cliponaxis=False,
@@ -114,7 +114,7 @@ def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False,
             name="Income",
             offsetgroup="income",
             customdata=income_cd,
-            text=[format_k_es(v) if float(v or 0) != 0 else "" for v in df["income_total"]],
+            text=[format_k_es(v, masked=hidden) if float(v or 0) != 0 else "" for v in df["income_total"]],
             texttemplate="%{text}",
             textposition="outside",
             cliponaxis=False,
@@ -168,7 +168,7 @@ def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False,
                 name="Savings",
                 offsetgroup="savings",
                 customdata=savings_cd,
-                text=[format_k_es(v) if float(v or 0) != 0 else "" for v in df["savings_total"]],
+                text=[format_k_es(v, masked=hidden) if float(v or 0) != 0 else "" for v in df["savings_total"]],
                 texttemplate="%{text}",
                 textposition="outside",
                 cliponaxis=False,
@@ -221,7 +221,7 @@ def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False,
             yaxis="y",
             line={"color": SEMANTIC["net"]["line"], "width": 0.8, "shape": "spline", "smoothing": 0.55},
             marker={"size": 3, "color": SEMANTIC["net"]["line"]},
-            customdata=[[format_eur_es(v)] for v in df["net_total"]],
+            customdata=[[format_eur_es(v, masked=hidden)] for v in df["net_total"]],
             hovertemplate="<b>%{x}</b><br>Net: %{customdata[0]}<extra></extra>",
         )
     )
@@ -240,7 +240,7 @@ def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False,
                     "color": SEMANTIC["savings"]["line"],
                     "line": {"color": "rgba(255,255,255,0.92)", "width": 1.2},
                 },
-                customdata=[[format_eur_es(v)] for v in df["cumulative_savings"]],
+                customdata=[[format_eur_es(v, masked=hidden)] for v in df["cumulative_savings"]],
                 hovertemplate="<b>%{x}</b><br>Accumulated savings: %{customdata[0]}<extra></extra>",
             )
         )

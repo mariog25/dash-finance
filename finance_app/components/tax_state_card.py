@@ -67,7 +67,7 @@ def build_tax_state_card():
     )
 
 
-def build_tax_state_trend_figure(years, values):
+def build_tax_state_trend_figure(years, values, hidden: bool = False):
     return build_tax_card_trend_figure(
         years,
         values,
@@ -76,4 +76,5 @@ def build_tax_state_trend_figure(years, values):
         "\\",
         "rgba(25, 115, 184, 0.12)",
         "rgba(25, 115, 184, 0.01)",
+        hidden=hidden,
     )

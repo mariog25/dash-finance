@@ -98,12 +98,40 @@ a {
 }
 
 .sidebar-title {
-  margin: 4px 0 8px 0;
+  margin: 0;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--bbva-text);
-  display: none;
+}
+
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.visibility-toggle-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--bbva-text);
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.visibility-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
 }
 
 .sidebar::after {
@@ -1271,11 +1299,12 @@ a {
 }
 
 .year-evolution-desktop {
-  display: block;
+  gap: 24px;
 }
 
 .year-evolution-mobile {
   display: none;
+  gap: 24px;
 }
 
 .trend-graph-desktop {
@@ -1304,6 +1333,15 @@ a {
 .sidebar-item-text {
   display: none;
 }
+
+.sidebar-title-row {
+  justify-content: flex-start;
+}
+
+.visibility-toggle-btn {
+  margin-left: auto;
+}
+
 .sidebar-menu {
   display: flex;
   flex-direction: column;

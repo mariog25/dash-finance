@@ -1,4 +1,8 @@
-def format_eur_es(value):
+def mask_digits(text):
+    return "".join("*" if ch.isdigit() else ch for ch in str(text))
+
+
+def format_eur_es(value, masked=False):
     try:
         n = float(value or 0)
     except (TypeError, ValueError):
@@ -6,19 +10,22 @@ def format_eur_es(value):
 
     s = f"{n:,.2f}"
     s = s.replace(",", "§").replace(".", ",").replace("§", ".")
-    return f"{s} €"
+    formatted = f"{s} €"
+    return mask_digits(formatted) if masked else formatted
 
-def format_k_es(value):
+
+def format_k_es(value, masked=False):
     try:
         n = float(value or 0)
     except (TypeError, ValueError):
         n = 0.0
 
     s = f"{n/1000:.2f}".replace(".", ",")
-    return f"{s}k"
+    formatted = f"{s}k"
+    return mask_digits(formatted) if masked else formatted
 
 
-def format_pct_es(value):
+def format_pct_es(value, masked=False):
     try:
         n = float(value or 0)
     except (TypeError, ValueError):
@@ -27,12 +34,13 @@ def format_pct_es(value):
     s = f"{abs(n):.1f}"
     s = s.replace(".", ",")
 
-    if n > 0:
-        return f"▲{s}%"
-    elif n < 0:
-        return f"▼{s}%"
-         
-    return f"{s}%"
+    formatted = (
+        f"▲{s}%" if n > 0 else
+        f"▼{s}%" if n < 0 else
+        f"{s}%"
+    )
+
+    return mask_digits(formatted) if masked else formatted
 
 def deviation_class(metric_type: str, value: float) -> str:
     try:
@@ -49,7 +57,7 @@ def deviation_class(metric_type: str, value: float) -> str:
     return "metric-value metric-neutral"
 
 
-def format_daily_es(value):
+def format_daily_es(value, masked=False):
     try:
         n = float(value or 0)
     except (TypeError, ValueError):
@@ -57,7 +65,7 @@ def format_daily_es(value):
 
     s = f"{n:,.1f}"
     s = s.replace(",", "§").replace(".", ",").replace("§", ".")
-   
-    return f"{s} €/day"
+    formatted = f"{s} €/day"
+    return mask_digits(formatted) if masked else formatted
 
 
