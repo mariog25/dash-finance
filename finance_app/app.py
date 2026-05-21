@@ -1,5 +1,5 @@
 import os
-from dash import Dash, html, dcc, Input, Output, State, ctx, page_container
+from dash import Dash, html, dcc, Input, Output, State, ctx, page_container, ClientsideFunction
 
 from components.header import build_header
 from components.sidebar import build_sidebar
@@ -20,6 +20,7 @@ app.layout = html.Div(
         dcc.Store(id="sidebar-open", data={"mobile_open": False, "desktop_expanded": False}),
         dcc.Store(id="global-period-store", storage_type="session", data={}),
         dcc.Store(id="visibility-store", storage_type="session", data={"visible": True}),
+        html.Div(id="visibility-refresh", style={"display": "none"}),
         html.Div(
             id="sidebar-wrapper",
             className="sidebar-wrapper",
@@ -111,6 +112,14 @@ def toggle_visibility(n_clicks, visibility_data):
         visible = not visible
 
     return {"visible": visible}, "◉" if visible else "⊘"
+
+
+app.clientside_callback(
+    ClientsideFunction(namespace="visibility", function_name="reloadOnButtonClick"),
+    Output("visibility-refresh", "children"),
+    Input("toggle-visibility-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
 
 
 if __name__ == "__main__":

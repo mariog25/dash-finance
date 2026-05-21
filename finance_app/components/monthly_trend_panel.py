@@ -321,6 +321,7 @@ def build_monthly_trend_figure(df: pd.DataFrame, show_savings_bar: bool = False,
             "barcornerradius": "32%",
         })
 
+    layout_kwargs["uirevision"] = str(hidden)
     fig.update_layout(**layout_kwargs)
 
     return fig
