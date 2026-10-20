@@ -175,14 +175,14 @@ layout = html.Div(
                     children=[
                         html.Div(
                             [
-                                html.Span("Total interest paid:", className="schedule-summary-label"),
+                                html.Span("Total estimated interest:", className="schedule-summary-label"),
                                 html.Span(id="mortgage-schedule-total-interest", className="schedule-summary-value"),
                             ],
                             className="schedule-summary-item",
                         ),
                         html.Div(
                             [
-                                html.Span("Total amortization paid:", className="schedule-summary-label"),
+                                html.Span("Total principal:", className="schedule-summary-label"),
                                 html.Span(id="mortgage-schedule-total-amortization", className="schedule-summary-value"),
                             ],
                             className="schedule-summary-item",
@@ -247,9 +247,9 @@ def update_mortgage_dashboard(year, visibility_data):
     total_projected_interest = schedule_df["total_interest"].sum() if not schedule_df.empty else 0.0
     total_projected_amortization = schedule_df["total_amortization"].sum() if not schedule_df.empty else 0.0
     selected_year_int = int(year)
-    accumulated_payment_to_year = schedule_df[schedule_df["year"] <= selected_year_int]["total_payment"].sum() if not schedule_df.empty else 0.0
-    accumulated_interest_to_year = schedule_df[schedule_df["year"] <= selected_year_int]["total_interest"].sum() if not schedule_df.empty else 0.0
-    accumulated_amortization_to_year = schedule_df[schedule_df["year"] <= selected_year_int]["total_amortization"].sum() if not schedule_df.empty else 0.0
+    accumulated_payment_to_year = schedule_df[schedule_df["year"] <= selected_year_int]["actual_total_payment"].sum() if not schedule_df.empty else 0.0
+    accumulated_interest_to_year = schedule_df[schedule_df["year"] <= selected_year_int]["actual_total_interest"].sum() if not schedule_df.empty else 0.0
+    accumulated_amortization_to_year = schedule_df[schedule_df["year"] <= selected_year_int]["actual_total_amortization"].sum() if not schedule_df.empty else 0.0
 
     # Build sparkline figures
     def build_sparkline(years, values, line_color, fill_color, dot_color, fillpattern_shape=None, fillpattern_fg=None, fillpattern_bg=None, hidden=False):

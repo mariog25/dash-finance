@@ -1055,7 +1055,6 @@ def get_mortgage_trend_last_10_years(year: str):
 
 def get_mortgage_amortization_schedule():
     engine = get_engine()
-
     query = """
     SELECT
         charge_date_sk,
@@ -1063,189 +1062,96 @@ def get_mortgage_amortization_schedule():
         interest_amt,
         capital_amortized_amt,
         outstanding_principal_amt,
+        calculation_base_amt,
         applied_interest_rate_pct
     FROM iceberg.gold.fact_mortgage_payment
     WHERE charge_date_sk IS NOT NULL
     ORDER BY charge_date_sk
     """
+    return build_mortgage_amortization_schedule(pd.read_sql(query, engine))
 
-    df = pd.read_sql(query, engine)
 
+def build_mortgage_amortization_schedule(df, as_of=None):
+    """Keep recorded payments separate from estimates at the last known rate."""
+    metrics = ["total_payment", "total_interest", "total_amortization"]
+    actual_metrics = [f"actual_{metric}" for metric in metrics]
+    columns = ["year", *metrics, "ending_principal", "projected", *actual_metrics]
     if df.empty:
-        return pd.DataFrame(
-            columns=[
-                "year",
-                "total_payment",
-                "total_interest",
-                "total_amortization",
-                "ending_principal",
-                "projected",
-            ]
-        )
+        return pd.DataFrame(columns=columns)
 
-    df["charge_date"] = pd.to_datetime(df["charge_date_sk"].astype(str), format="%Y%m%d", errors="coerce")
-    df = df[df["charge_date"].notna()].copy()
+    df = df.copy()
+    df["charge_date"] = pd.to_datetime(
+        df["charge_date_sk"].astype(str), format="%Y%m%d", errors="coerce"
+    )
+    cutoff = pd.Timestamp(as_of) if as_of is not None else pd.Timestamp.now(tz="Europe/Madrid").tz_localize(None)
+    df = df[df["charge_date"].notna() & (df["charge_date"] <= cutoff)].copy()
+    df = df.sort_values("charge_date").reset_index(drop=True)
+    if df.empty:
+        return pd.DataFrame(columns=columns)
+
+    amounts = {
+        "installment_total_amt": "total_payment",
+        "interest_amt": "total_interest",
+        "capital_amortized_amt": "total_amortization",
+    }
+    for column in [*amounts, "outstanding_principal_amt", "calculation_base_amt", "applied_interest_rate_pct"]:
+        df[column] = pd.to_numeric(df[column], errors="coerce")
+    df[list(amounts)] = df[list(amounts)].fillna(0.0)
+
+    # A missing balance is unknown, not a repaid loan. The calculation base
+    # is the balance BEFORE this receipt's principal repayment.
+    balance = df["outstanding_principal_amt"].combine_first(
+        df["calculation_base_amt"] - df["capital_amortized_amt"]
+    )
+    cumulative_capital = df["capital_amortized_amt"].cumsum()
+    # Carry earlier known balances forward, subtracting subsequent repayments.
+    balance = balance.combine_first(
+        (balance + cumulative_capital).ffill() - cumulative_capital
+    )
+    df["ending_principal"] = balance
+    if pd.isna(balance.iloc[-1]):
+        raise ValueError("Cannot project mortgage: no outstanding principal or calculation base available.")
+
     df["year"] = df["charge_date"].dt.year
-    df["month"] = df["charge_date"].dt.month
-    df["installment_total_amt"] = df["installment_total_amt"].fillna(0.0).astype(float)
-    df["interest_amt"] = df["interest_amt"].fillna(0.0).astype(float)
-    df["capital_amortized_amt"] = df["capital_amortized_amt"].fillna(0.0).astype(float)
-    df["outstanding_principal_amt"] = df["outstanding_principal_amt"].fillna(0.0).astype(float)
-    df["applied_interest_rate_pct"] = df["applied_interest_rate_pct"].fillna(0.0).astype(float)
+    yearly = df.groupby("year")[list(amounts)].sum().rename(columns=amounts)
+    # Preserve missing historical balances rather than filling them with zero.
+    yearly["ending_principal"] = df.groupby("year")["ending_principal"].agg(lambda values: values.iloc[-1])
+    yearly["projected"] = False
+    for metric in metrics:
+        yearly[f"actual_{metric}"] = yearly[metric]
+    rows = yearly.to_dict("index")
 
-    # Get current date info
-    current_date = pd.Timestamp.now()
-    current_year = current_date.year
-    current_month = current_date.month
-
-    # Separate historical data and current year projection
-    historical_df = df[df["year"] < current_year].copy()
-    current_year_historical = df[(df["year"] == current_year) & (df["month"] <= current_month)].copy()
-
-    # Aggregate historical years
-    yearly_historical = []
-    if not historical_df.empty:
-        yearly_hist = (
-            historical_df.groupby("year", as_index=False)
-            .agg({
-                "installment_total_amt": "sum",
-                "interest_amt": "sum", 
-                "capital_amortized_amt": "sum",
-                "outstanding_principal_amt": lambda x: x.iloc[-1] if not x.empty else 0.0
-            })
-            .rename(columns={
-                "installment_total_amt": "total_payment",
-                "interest_amt": "total_interest",
-                "capital_amortized_amt": "total_amortization", 
-                "outstanding_principal_amt": "ending_principal"
-            })
-            .sort_values("year")
-        )
-        yearly_hist["projected"] = False
-        yearly_historical = yearly_hist.to_dict("records")
-
-    # Handle current year
-    current_year_data = None
-    monthly_payment = None
-    monthly_rate_pct = None
-
-    if not current_year_historical.empty:
-        # Get historical data for current year up to current month
-        current_hist_agg = {
-            "installment_total_amt": current_year_historical["installment_total_amt"].sum(),
-            "interest_amt": current_year_historical["interest_amt"].sum(),
-            "capital_amortized_amt": current_year_historical["capital_amortized_amt"].sum(),
-            "outstanding_principal_amt": current_year_historical["outstanding_principal_amt"].iloc[-1],
-            "applied_interest_rate_pct": current_year_historical["applied_interest_rate_pct"].iloc[-1]
-        }
-
-        current_balance = float(current_hist_agg["outstanding_principal_amt"])
-        # Use the last known monthly payment as the standard payment
-        last_payment_row = current_year_historical.iloc[-1]
-        monthly_payment = float(last_payment_row["installment_total_amt"])
-        monthly_rate_pct = float(current_hist_agg["applied_interest_rate_pct"])
-        monthly_rate = monthly_rate_pct / 100.0 / 12.0
-
-        # Project remaining months of current year
-        year_payment = float(current_hist_agg["installment_total_amt"])
-        year_interest = float(current_hist_agg["interest_amt"])
-        year_amortization = float(current_hist_agg["capital_amortized_amt"])
-
-        for month in range(current_month + 1, 13):  # From next month to December
-            if current_balance <= 0:
-                break
-
+    current_balance = max(float(balance.iloc[-1]), 0.0)
+    if current_balance > 0:
+        monthly_payment = float(df["installment_total_amt"].iloc[-1])
+        rates = df["applied_interest_rate_pct"].dropna()
+        if rates.empty or monthly_payment <= 0:
+            raise ValueError("Cannot project mortgage: missing interest rate or positive monthly payment.")
+        monthly_rate = float(rates.iloc[-1]) / 100.0 / 12.0
+        last_month = df["charge_date"].iloc[-1].to_period("M")
+        # Start after the last receipt, including missing months in its year.
+        for offset in range(1, 40 * 12 + 1):
+            projection_year = (last_month + offset).year
             interest = current_balance * monthly_rate
-            amortization = monthly_payment - interest
-
+            amortization = min(monthly_payment - interest, current_balance)
             if amortization <= 0:
-                break
-
-            if amortization >= current_balance:
-                amortization = current_balance
-                payment = current_balance + interest
-            else:
-                payment = monthly_payment
-
-            current_balance -= amortization
-            year_payment += payment
-            year_interest += interest
-            year_amortization += amortization
-
-        current_year_data = {
-            "year": current_year,
-            "total_payment": year_payment,
-            "total_interest": year_interest,
-            "total_amortization": year_amortization,
-            "ending_principal": max(current_balance, 0.0),
-            "projected": True,  # Mark as projected since it includes future months
-        }
-
-    # Get data for future projections
-    if current_year_data:
-        last_balance = current_year_data["ending_principal"]
-        last_payment = monthly_payment  # Use the monthly payment from current year
-        last_rate_pct = monthly_rate_pct  # Use the rate from current year
-        last_year = current_year
-    else:
-        # Fallback to last historical data
-        end_row = df.iloc[-1]
-        last_balance = float(end_row["outstanding_principal_amt"])
-        last_payment = float(end_row["installment_total_amt"])
-        last_rate_pct = float(end_row["applied_interest_rate_pct"])
-        last_year = int(end_row["year"])
-
-    projected_rows = []
-    if last_balance > 0 and last_payment > 0:
-        monthly_rate = last_rate_pct / 100.0 / 12.0
-        current_balance = last_balance
-        projection_year = last_year
-
-        while current_balance > 0 and projection_year < last_year + 40:
-            projection_year += 1
-            year_payment = 0.0
-            year_interest = 0.0
-            year_amortization = 0.0
-
-            for month in range(12):
-                if current_balance <= 0:
-                    break
-
-                interest = current_balance * monthly_rate
-                amortization = last_payment - interest
-                if amortization <= 0:
-                    break
-
-                if amortization >= current_balance:
-                    amortization = current_balance
-                    payment = current_balance + interest
-                else:
-                    payment = last_payment
-
-                current_balance -= amortization
-                year_payment += payment
-                year_interest += interest
-                year_amortization += amortization
-
-            projected_rows.append(
-                {
-                    "year": projection_year,
-                    "total_payment": year_payment,
-                    "total_interest": year_interest,
-                    "total_amortization": year_amortization,
-                    "ending_principal": max(current_balance, 0.0),
-                    "projected": True,
-                }
-            )
-
+                raise ValueError("Cannot project mortgage: payment does not cover monthly interest.")
+            payment = amortization + interest
+            current_balance = max(current_balance - amortization, 0.0)
+            row = rows.setdefault(projection_year, {
+                **dict.fromkeys(metrics + actual_metrics, 0.0),
+                "ending_principal": 0.0,
+                "projected": True,
+            })
+            row["total_payment"] += payment
+            row["total_interest"] += interest
+            row["total_amortization"] += amortization
+            row["ending_principal"] = current_balance
+            row["projected"] = True
             if current_balance <= 0:
                 break
+        else:
+            raise ValueError("Mortgage projection exceeds 40 years; check payment and rate.")
 
-    # Combine all data
-    all_rows = yearly_historical
-    if current_year_data:
-        all_rows.append(current_year_data)
-    all_rows.extend(projected_rows)
-
-    result_df = pd.DataFrame(all_rows)
-    return result_df
+    result = pd.DataFrame.from_dict(rows, orient="index").rename_axis("year").reset_index()
+    return result[columns].sort_values("year").reset_index(drop=True)
